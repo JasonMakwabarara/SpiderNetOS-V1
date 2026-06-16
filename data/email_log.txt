@@ -1,0 +1,30 @@
+2026-05-31 21:07:12 - TO: joudarzakaria60@gmail.com | SUBJECT: SpiderNetOS Flow Executed | BODY: The flow was triggered successfully!
+2026-05-31 21:27:27 - TO: joudarzakaria60@gmail.com | SUBJECT: SpiderNetOS Flow Executed | BODY: The flow was triggered successfully!
+2026-05-31 21:27:55 - TO: joudarzakaria60@gmail.com | SUBJECT: SpiderNetOS Flow Executed | BODY: The flow was triggered successfully!
+2026-05-31 21:42:08 - TO: joudarzakaria60@gmail.com | SUBJECT: SpiderNetOS Flow Executed | BODY: The flow was triggered successfully!
+2026-06-01 06:40:35 - TO: joudarzakaria60@gmail.com | SUBJECT: Flow Newsletter executed | BODY: The flow "Newsletter" was triggered successfully!
+2026-06-01 07:19:32 - TO: jouzakaria60@gmail.com | SUBJECT: Flow GmailTest executed | BODY: The flow "GmailTest" was triggered successfully!
+2026-06-01 07:22:14 - TO: jouzakaria60@gmail.com | SUBJECT: Flow GmailTest executed | BODY: The flow "GmailTest" was triggered successfully!
+2026-06-01 07:22:29 - TO: jouzakaria60@gmail.com | SUBJECT: Flow GmailTest executed | BODY: The flow "GmailTest" was triggered successfully!
+2026-06-01 07:23:04 - TO: joudarzakaria60@gmail.com | SUBJECT: azer | BODY: Ai app
+
+2026-06-01 07:23:04 - TO: joudarzakaria60@gmail.com | SUBJECT: azer | BODY: Ai app
+
+2026-06-01 15:24:05 - TO: joudarzakaria60@gmail.com | SUBJECT: Flow business executed | BODY: The flow "business" was triggered successfully!
+2026-06-01 15:58:27 - TO: joudarzakaria60@gmail.com | SUBJECT: business  | BODY: ai app
+2026-06-01 16:08:28 - TO: jouzakaria60@gmail.com | SUBJECT: Flow Test executed | BODY: The flow "Test" was triggered successfully!
+2026-06-01 16:08:34 - TO: jouzakaria60@gmail.com | SUBJECT: Flow Test executed | BODY: The flow "Test" was triggered successfully!
+2026-06-01 16:08:40 - TO: jouzakaria60@gmail.com | SUBJECT: Flow Test executed | BODY: The flow "Test" was triggered successfully!
+2026-06-01 16:35:43 - TO: jouzakaria60@gmail.com | SUBJECT: Flow GmailTest executed | BODY: The flow "GmailTest" was triggered successfully!
+2026-06-01 16:37:40 - TO: azarjoudar@gmail.com | SUBJECT: Flow GmailTest executed | BODY: The flow "GmailTest" was triggered successfully!
+2026-06-01 17:41:54 - TO: azarjoudar@gmail.com | SUBJECT: Flow azar executed | BODY: The flow "azar" was triggered successfully!
+2026-06-01 17:51:48 - TO: azarjoudar@gmail.com | SUBJECT: Flow RealTest executed | BODY: The flow "RealTest" was triggered successfully!
+2026-06-01 17:57:22 - TO: azarjoudar@gmail.com | SUBJECT: Flow azaFinalTest executed | BODY: The flow "azaFinalTest" was triggered successfully!
+2026-06-01 18:17:53 - TO: azarjoudar@gmail.com | SUBJECT: Flow irnal executed | BODY: The flow "irnal" was triggered successfully!
+2026-06-01 18:31:38 - EMAIL SENT to: azarjoudar@gmail.com | SUBJECT: Flow TestPHPMailer executed
+2026-06-01 18:31:50 - EMAIL SENT to: azarjoudar@gmail.com | SUBJECT: Flow TestPHPMailer executed
+2026-06-01 18:31:55 - EMAIL SENT to: azarjoudar@gmail.com | SUBJECT: Flow TestPHPMailer executed
+2026-06-01 18:32:02 - EMAIL SENT to: azarjoudar@gmail.com | SUBJECT: Flow TestPHPMailer executed
+2026-06-08 07:22:45 - TO: azarjoudar@gmail.com | SUBJECT: Flow Newsletter executed | BODY: The flow "Newsletter" was triggered successfully!
+2026-06-08 07:29:32 - TO: azarjoudar@gmail.com | SUBJECT: Flow Today executed | BODY: The flow "Today" was triggered successfully!
+2026-06-08 07:44:16 - EMAIL SENT to: azarjoudar@gmail.com | SUBJECT: Flow Newsletter executed

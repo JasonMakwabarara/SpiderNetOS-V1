@@ -1,0 +1,228 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use App\Services\LLMService;
+
+function getTenantId() {
+    return 'default';
+}
+
+// ==================== TEST ROUTE ====================
+Route::get('/ping', function () {
+    return 'pong';
+});
+
+// ==================== AGENTS ====================
+
+Route::get('/agents', function () {
+    return response()->json(DB::table('agents')->get());
+});
+
+Route::post('/agents', function (Request $request) {
+    $id = (string) Str::uuid();
+    DB::table('agents')->insert([
+        'id' => $id,
+        'tenant_id' => getTenantId(),
+        'name' => $request->name,
+        'description' => $request->description,
+        'icon' => $request->icon ?? '🤖',
+        'status' => $request->status ?? 'inactive',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+    return response()->json(DB::table('agents')->where('id', $id)->first(), 201);
+});
+
+Route::put('/agents/{id}', function (Request $request, $id) {
+    DB::table('agents')->where('id', $id)->update([
+        'name' => $request->name,
+        'description' => $request->description,
+        'icon' => $request->icon,
+        'status' => $request->status,
+        'updated_at' => now(),
+    ]);
+    return response()->json(DB::table('agents')->where('id', $id)->first());
+});
+
+Route::delete('/agents/{id}', function ($id) {
+    DB::table('agents')->where('id', $id)->delete();
+    return response()->json(null, 204);
+});
+
+// Agent Run with multi-provider LLM (local + OpenAI)
+Route::post('/agents/{id}/run', function ($id, Request $request) {
+    $agent = DB::table('agents')->where('id', $id)->first();
+    if (!$agent) {
+        return response()->json(['error' => 'Agent not found'], 404);
+    }
+    $message = $request->input('message', 'Hello');
+    $llm = new LLMService();
+    $response = $llm->chat([
+        ['role' => 'system', 'content' => "You are {$agent->name}. Be helpful and concise."],
+        ['role' => 'user', 'content' => $message]
+    ]);
+    return response()->json(['result' => ['response' => $response]]);
+});
+
+// ==================== FLOWS ====================
+
+Route::get('/flows', function () {
+    return response()->json(DB::table('flows')->get());
+});
+
+Route::post('/flows', function (Request $request) {
+    $id = (string) Str::uuid();
+    DB::table('flows')->insert([
+        'id' => $id,
+        'tenant_id' => getTenantId(),
+        'name' => $request->name,
+        'description' => $request->description,
+        'trigger' => $request->trigger ?? 'manual',
+        'icon' => $request->icon ?? '⚡',
+        'executions' => 0,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+    return response()->json(DB::table('flows')->where('id', $id)->first(), 201);
+});
+
+Route::put('/flows/{id}', function (Request $request, $id) {
+    DB::table('flows')->where('id', $id)->update([
+        'name' => $request->name,
+        'description' => $request->description,
+        'trigger' => $request->trigger,
+        'icon' => $request->icon,
+        'updated_at' => now(),
+    ]);
+    return response()->json(DB::table('flows')->where('id', $id)->first());
+});
+
+Route::delete('/flows/{id}', function ($id) {
+    DB::table('flows')->where('id', $id)->delete();
+    return response()->json(null, 204);
+});
+
+// Flow Execute with external actions (Slack, webhook)
+Route::post('/flows/{id}/execute', function ($id) {
+    $flow = DB::table('flows')->where('id', $id)->first();
+    if (!$flow) return response()->json(['error' => 'Flow not found'], 404);
+    DB::table('flows')->where('id', $id)->increment('executions');
+    $config = json_decode($flow->config ?? '{}', true);
+    foreach ($config['actions'] ?? [] as $action) {
+        if ($action['type'] === 'slack') {
+            Http::post($action['webhook'], ['text' => $action['message']]);
+        } elseif ($action['type'] === 'webhook') {
+            Http::post($action['url'], $action['data'] ?? []);
+        }
+    }
+    return response()->json(['message' => "Flow executed with " . count($config['actions'] ?? []) . " actions"]);
+});
+
+// ==================== ATLAS CHAT ====================
+
+Route::post('/atlas/chat', function (Request $request) {
+    $text = $request->message;
+    $lower = strtolower($text);
+    
+    if (str_contains($lower, 'create agent')) {
+        $name = trim(preg_replace('/create agent/i', '', $text));
+        $id = (string) Str::uuid();
+        DB::table('agents')->insert([
+            'id' => $id,
+            'tenant_id' => getTenantId(),
+            'name' => $name,
+            'status' => 'inactive',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        return response()->json(['response' => "✅ Agent '$name' created!"]);
+    }
+    
+    if (str_contains($lower, 'create flow')) {
+        $name = trim(preg_replace('/create flow/i', '', $text));
+        $id = (string) Str::uuid();
+        DB::table('flows')->insert([
+            'id' => $id,
+            'tenant_id' => getTenantId(),
+            'name' => $name,
+            'executions' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        return response()->json(['response' => "✅ Flow '$name' created!"]);
+    }
+    
+    if (str_contains($lower, '/agents')) {
+        $agents = DB::table('agents')->get();
+        if ($agents->isEmpty()) return response()->json(['response' => 'No agents yet.']);
+        $list = "**Your agents:**\n";
+        foreach ($agents as $a) $list .= "- {$a->name} ({$a->status})\n";
+        return response()->json(['response' => $list]);
+    }
+    
+    if (str_contains($lower, '/flows')) {
+        $flows = DB::table('flows')->get();
+        if ($flows->isEmpty()) return response()->json(['response' => 'No flows yet.']);
+        $list = "**Your flows:**\n";
+        foreach ($flows as $f) $list .= "- {$f->name} (runs: {$f->executions})\n";
+        return response()->json(['response' => $list]);
+    }
+    
+    // If no command, use LLM
+    $llm = new LLMService();
+    $response = $llm->chat([
+        ['role' => 'system', 'content' => 'You are Atlas, an AI operations assistant. Be concise and helpful.'],
+        ['role' => 'user', 'content' => $text]
+    ]);
+    return response()->json(['response' => $response]);
+});
+
+// ==================== RAG (Retrieval-Augmented Generation) ====================
+
+Route::post('/rag/upload', function (Request $request) {
+    $id = (string) Str::uuid();
+    DB::table('memory_nodes')->insert([
+        'id' => $id,
+        'tenant_id' => getTenantId(),
+        'content' => $request->input('content'),
+        'metadata' => json_encode($request->input('metadata', [])),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+    return response()->json(['message' => 'Document stored', 'id' => $id]);
+});
+
+Route::post('/rag/query', function (Request $request) {
+    $query = $request->input('query');
+    $tenantId = getTenantId();
+    $results = DB::table('memory_nodes')
+        ->where('tenant_id', $tenantId)
+        ->where('content', 'LIKE', '%' . $query . '%')
+        ->get();
+    $context = $results->pluck('content')->implode("\n\n");
+    $llm = new LLMService();
+    $answer = $llm->chat([
+        ['role' => 'system', 'content' => 'Answer based on context. If not found, say "I don\'t know".'],
+        ['role' => 'user', 'content' => "Context:\n$context\n\nQuestion: $query"]
+    ]);
+    return response()->json(['answer' => $answer, 'sources' => $results]);
+});
+
+// ==================== HEALTH ====================
+
+Route::get('/health', function () {
+    return response()->json(['status' => 'healthy']);
+});
+
+// ==================== LOGIN ====================
+
+Route::post('/login', function (Request $request) {
+    if ($request->email === 'admin@spidernetos.com' && $request->password === 'Zukaarimoto01!') {
+        return response()->json(['token' => 'mock-token', 'user' => ['name' => 'Admin']]);
+    }
+    return response()->json(['error' => 'Invalid credentials'], 401);
+});

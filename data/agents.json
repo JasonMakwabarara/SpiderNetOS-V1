@@ -1,0 +1,30 @@
+[
+    {
+        "id": 1,
+        "name": "Sales Assistant",
+        "description": "Helps customers with product questions and sales inquiries",
+        "status": "inactive",
+        "icon": "\ud83e\udd16"
+    },
+    {
+        "id": 2,
+        "name": "CustomerSupport",
+        "description": "Created via Atlas: CustomerSupport",
+        "status": "inactive",
+        "icon": "\ud83e\udd16"
+    },
+    {
+        "id": 3,
+        "name": "kari",
+        "description": "Created via Atlas: kari",
+        "status": "inactive",
+        "icon": "\ud83e\udd16"
+    },
+    {
+        "id": 4,
+        "name": "SalesBot",
+        "description": "Created via Atlas: SalesBot",
+        "status": "inactive",
+        "icon": "\ud83e\udd16"
+    }
+]

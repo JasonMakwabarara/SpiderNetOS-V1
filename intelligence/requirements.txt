@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+pgvector
+psycopg2-binary
+sqlalchemy
+openai

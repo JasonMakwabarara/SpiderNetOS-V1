@@ -1,0 +1,15 @@
+﻿<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AgentController;
+use App\Http\Controllers\Api\FlowController;
+
+Route::get('/health', fn() => response()->json(['status' => 'healthy']));
+
+Route::apiResource('agents', AgentController::class);
+Route::post('/agents/{agent}/run', [AgentController::class, 'run']);
+
+Route::apiResource('flows', FlowController::class);
+Route::post('/flows/{flow}/execute', [FlowController::class, 'execute']);
+
+Route::post('/login', fn() => response()->json(['token' => 'demo-token', 'user' => ['name' => 'Admin']]));

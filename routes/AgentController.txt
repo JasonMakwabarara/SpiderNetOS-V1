@@ -1,0 +1,41 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Agent;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class AgentController extends Controller
+{
+    public function index()
+    {
+        $agents = Agent::all();
+        return response()->json($agents);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string',
+            'description' => 'nullable|string',
+            'role' => 'nullable|string',
+        ]);
+
+        $validated['slug'] = Str::slug($validated['name']);
+        $validated['tenant_id'] = 1;
+        
+        $agent = Agent::create($validated);
+        return response()->json($agent, 201);
+    }
+
+    public function run(Request $request, Agent $agent)
+    {
+        $message = $request->input('message', 'Hello');
+        return response()->json([
+            'result' => [
+                'response' => "Agent '{$agent->name}' received: $message"
+            ]
+        ]);
+    }
+}

@@ -1,0 +1,219 @@
+<template>
+  <div class="dashboard">
+    <!-- Welcome Header -->
+    <div class="welcome-header">
+      <div>
+        <h1>Welcome back, Operator</h1>
+        <p>Your SpiderNetOS workspace overview</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-outline" @click="openAtlas">Open Atlas</button>
+        <button class="btn-primary" @click="newFlow">+ New Flow</button>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🤖</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.agents }}</span>
+          <span class="stat-label">Active Agents</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.flows }}</span>
+          <span class="stat-label">Workflows</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.executions }}</span>
+          <span class="stat-label">Executions (24h)</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-info">
+          <span class="stat-value">${{ stats.cost }}</span>
+          <span class="stat-label">AI Cost (monthly)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="dashboard-grid">
+      <!-- Recent Agents -->
+      <div class="card">
+        <div class="card-header">
+          <h3>🤖 Recent Agents</h3>
+          <router-link to="/agents">View all →</router-link>
+        </div>
+        <div class="card-content">
+          <div v-for="agent in recentAgents" :key="agent.id" class="list-item">
+            <span class="item-icon">{{ agent.icon }}</span>
+            <span class="item-name">{{ agent.name }}</span>
+            <span class="item-status" :class="agent.status">{{ agent.status }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Flows -->
+      <div class="card">
+        <div class="card-header">
+          <h3>⚡ Recent Flows</h3>
+          <router-link to="/flows">View all →</router-link>
+        </div>
+        <div class="card-content">
+          <div v-for="flow in recentFlows" :key="flow.id" class="list-item">
+            <span class="item-icon">{{ flow.icon }}</span>
+            <span class="item-name">{{ flow.name }}</span>
+            <span class="item-badge">{{ flow.runs }} runs</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Atlas Quick Actions -->
+      <div class="card">
+        <div class="card-header">
+          <h3>🧠 Atlas Quick Commands</h3>
+          <router-link to="/atlas">Open Atlas →</router-link>
+        </div>
+        <div class="card-content">
+          <div v-for="cmd in quickCommands" :key="cmd" class="command-chip" @click="runCommand(cmd)">
+            {{ cmd }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="card">
+        <div class="card-header">
+          <h3>📋 Recent Activity</h3>
+          <router-link to="/traces">View all →</router-link>
+        </div>
+        <div class="card-content">
+          <div v-for="activity in activities" :key="activity.id" class="activity-item">
+            <span class="activity-icon">{{ activity.icon }}</span>
+            <div class="activity-details">
+              <span class="activity-title">{{ activity.title }}</span>
+              <span class="activity-time">{{ activity.time }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics Section -->
+    <div class="analytics-card">
+      <div class="card-header">
+        <h3>📈 Usage Analytics</h3>
+        <router-link to="/usage">Detailed report →</router-link>
+      </div>
+      <div class="analytics-grid">
+        <div class="analytics-item">
+          <span class="analytics-label">Today's API Calls</span>
+          <span class="analytics-value">1,247</span>
+        </div>
+        <div class="analytics-item">
+          <span class="analytics-label">AI Tokens Used</span>
+          <span class="analytics-value">342K</span>
+        </div>
+        <div class="analytics-item">
+          <span class="analytics-label">Avg Response Time</span>
+          <span class="analytics-value">1.2s</span>
+        </div>
+        <div class="analytics-item">
+          <span class="analytics-label">Success Rate</span>
+          <span class="analytics-value">98.5%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      stats: { agents: 4, flows: 4, executions: 1253, cost: 23.50 },
+      recentAgents: [
+        { id: 1, name: "SalesBot Pro", status: "active", icon: "📊" },
+        { id: 2, name: "SupportAgent", status: "active", icon: "💬" },
+        { id: 3, name: "DataAnalyzer", status: "idle", icon: "🔍" }
+      ],
+      recentFlows: [
+        { id: 1, name: "Order Processing", runs: 1247, icon: "📦" },
+        { id: 2, name: "Customer Onboarding", runs: 892, icon: "🎉" },
+        { id: 3, name: "Data Sync", runs: 3421, icon: "🔄" }
+      ],
+      quickCommands: [
+        "create agent SupportBot",
+        "create flow DataPipeline",
+        "list active agents",
+        "deploy SalesBot"
+      ],
+      activities: [
+        { id: 1, icon: "✅", title: "Agent 'SalesBot' deployed", time: "5 min ago" },
+        { id: 2, icon: "⚡", title: "Flow 'OrderProcessing' executed", time: "23 min ago" },
+        { id: 3, icon: "🧠", title: "Atlas command: create agent", time: "1 hour ago" },
+        { id: 4, icon: "📊", title: "Weekly report generated", time: "3 hours ago" }
+      ]
+    }
+  },
+  methods: {
+    openAtlas() { this.$router.push('/atlas') },
+    newFlow() { this.$router.push('/flows/new') },
+    runCommand(cmd) {
+      this.$router.push(`/atlas?command=${encodeURIComponent(cmd)}`);
+    }
+  }
+}
+</script>
+
+<style scoped>
+.dashboard { padding: 2rem; max-width: 1400px; margin: 0 auto; background: #f5f7fa; min-height: 100vh; }
+.welcome-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+.welcome-header h1 { font-size: 1.8rem; color: #1e293b; margin-bottom: 0.25rem; }
+.welcome-header p { color: #64748b; }
+.header-actions { display: flex; gap: 1rem; }
+.btn-primary { background: #3b82f6; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.btn-outline { background: white; border: 1px solid #cbd5e1; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+.stat-card { background: white; border-radius: 16px; padding: 1.2rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.stat-icon { font-size: 2rem; }
+.stat-info { display: flex; flex-direction: column; }
+.stat-value { font-size: 1.8rem; font-weight: 700; color: #1e293b; }
+.stat-label { font-size: 0.8rem; color: #64748b; }
+.dashboard-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
+@media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
+.card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.card-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid #e2e8f0; }
+.card-header h3 { margin: 0; font-size: 1.1rem; }
+.card-header a { color: #3b82f6; text-decoration: none; font-size: 0.85rem; }
+.card-content { padding: 1rem 1.5rem; }
+.list-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #f1f5f9; }
+.list-item:last-child { border-bottom: none; }
+.item-icon { font-size: 1.2rem; }
+.item-name { flex: 1; font-weight: 500; }
+.item-status { font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 12px; background: #f1f5f9; }
+.item-status.active { background: #d1fae5; color: #065f46; }
+.item-status.idle { background: #fef3c7; color: #92400e; }
+.item-badge { font-size: 0.7rem; background: #e2e8f0; padding: 0.2rem 0.6rem; border-radius: 12px; }
+.command-chip { display: inline-block; background: #f1f5f9; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; margin: 0.25rem; cursor: pointer; transition: all 0.2s; }
+.command-chip:hover { background: #3b82f6; color: white; }
+.activity-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid #f1f5f9; }
+.activity-icon { font-size: 1rem; }
+.activity-details { flex: 1; display: flex; justify-content: space-between; align-items: center; }
+.activity-title { font-size: 0.9rem; }
+.activity-time { font-size: 0.7rem; color: #94a3b8; }
+.analytics-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.analytics-grid { display: grid; grid-template-columns: repeat(4, 1fr); padding: 1.5rem; gap: 1rem; }
+.analytics-item { text-align: center; }
+.analytics-label { display: block; font-size: 0.8rem; color: #64748b; margin-bottom: 0.25rem; }
+.analytics-value { font-size: 1.4rem; font-weight: 700; color: #1e293b; }
+@media (max-width: 640px) { .analytics-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>

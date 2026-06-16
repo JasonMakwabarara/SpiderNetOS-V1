@@ -1,0 +1,173 @@
+[
+    {
+        "id": 1,
+        "name": "Order Notifier",
+        "description": "Sends a Slack notification when an order is placed",
+        "trigger": "webhook ",
+        "executions": 1,
+        "icon": "\u26a1",
+        "config": null
+    },
+    {
+        "id": 2,
+        "name": "DataPipeline",
+        "description": "Created via Atlas: DataPipeline",
+        "trigger": "manual",
+        "executions": 0,
+        "icon": "\u26a1",
+        "config": null
+    },
+    {
+        "id": 4,
+        "name": "Newsletter",
+        "description": "Email flow created via Atlas: Newsletter",
+        "trigger": "manual",
+        "executions": 0,
+        "icon": "\ud83d\udce7",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"joudarzakaria60@gmail.com\",\"subject\":\"Flow Newsletter executed\",\"body\":\"The flow \\\"Newsletter\\\" was triggered successfully!\"}]}"
+    },
+    {
+        "id": 6,
+        "name": "GmailTest",
+        "description": "Email flow created via Atlas: GmailTest",
+        "trigger": "manual",
+        "executions": 5,
+        "icon": "\ud83d\udce7",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"joudarzakaria60@gmail.com\",\"subject\":\"azer\",\"body\":\"Ai app\\n\"}]}"
+    },
+    {
+        "id": 7,
+        "name": "business",
+        "description": "Email flow created via Atlas: business",
+        "trigger": "manual",
+        "executions": 1,
+        "icon": "\ud83d\udce7",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"joudarzakaria60@gmail.com\",\"subject\":\"Flow business executed\",\"body\":\"The flow \\\"business\\\" was triggered successfully!\"}]}"
+    },
+    {
+        "id": 8,
+        "name": "DataPipeline",
+        "description": "Created via Atlas: DataPipeline",
+        "trigger": "manual",
+        "executions": 0,
+        "icon": "\u26a1",
+        "config": null
+    },
+    {
+        "id": 9,
+        "name": "DataPipeline with my email joudarzakaria60@gmail.com",
+        "description": "Created via Atlas: DataPipeline with my email joudarzakaria60@gmail.com",
+        "trigger": "manual",
+        "executions": 2,
+        "icon": "\u26a1",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"joudarzakaria60@gmail.com\",\"subject\":\"business \",\"body\":\"ai app\"}]}"
+    },
+    {
+        "id": 10,
+        "name": "Test",
+        "description": "Email flow created via Atlas: Test",
+        "trigger": "manual",
+        "executions": 3,
+        "icon": "\ud83d\udce7",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"jouzakaria60@gmail.com\",\"subject\":\"Flow Test executed\",\"body\":\"The flow \\\"Test\\\" was triggered successfully!\"}]}"
+    },
+    {
+        "id": 11,
+        "name": "GmailTest",
+        "description": "Email flow created via Atlas: GmailTest",
+        "trigger": "manual",
+        "executions": 1,
+        "icon": "\ud83d\udce7",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"jouzakaria60@gmail.com\",\"subject\":\"Flow GmailTest executed\",\"body\":\"The flow \\\"GmailTest\\\" was triggered successfully!\"}]}"
+    },
+    {
+        "id": 12,
+        "name": "GmailTest",
+        "description": "Email flow created via Atlas: GmailTest",
+        "trigger": "manual",
+        "executions": 1,
+        "icon": "\ud83d\udce7",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"azarjoudar@gmail.com\",\"subject\":\"Flow GmailTest executed\",\"body\":\"The flow \\\"GmailTest\\\" was triggered successfully!\"}]}"
+    },
+    {
+        "id": 13,
+        "name": "azar",
+        "description": "Email flow created via Atlas: azar",
+        "trigger": "manual",
+        "executions": 1,
+        "icon": "\ud83d\udce7",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"azarjoudar@gmail.com\",\"subject\":\"Flow azar executed\",\"body\":\"The flow \\\"azar\\\" was triggered successfully!\"}]}"
+    },
+    {
+        "id": 14,
+        "name": "RealTest",
+        "description": "Email flow created via Atlas: RealTest",
+        "trigger": "manual",
+        "executions": 1,
+        "icon": "\ud83d\udce7",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"azarjoudar@gmail.com\",\"subject\":\"Flow RealTest executed\",\"body\":\"The flow \\\"RealTest\\\" was triggered successfully!\"}]}"
+    },
+    {
+        "id": 15,
+        "name": "FinalRealTest",
+        "description": "Email flow created via Atlas: FinalRealTest",
+        "trigger": "manual",
+        "executions": 0,
+        "icon": "\ud83d\udce7",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"joudarzakaria60@gmail.com\",\"subject\":\"Flow FinalRealTest executed\",\"body\":\"The flow \\\"FinalRealTest\\\" was triggered successfully!\"}]}"
+    },
+    {
+        "id": 16,
+        "name": "FinalTest",
+        "description": "Email flow created via Atlas: FinalTest",
+        "trigger": "manual",
+        "executions": 0,
+        "icon": "\ud83d\udce7",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"azarjoudr@gmail.com\",\"subject\":\"Flow FinalTest executed\",\"body\":\"The flow \\\"FinalTest\\\" was triggered successfully!\"}]}"
+    },
+    {
+        "id": 17,
+        "name": "FinalTest",
+        "description": "Email flow created via Atlas: FinalTest",
+        "trigger": "manual",
+        "executions": 0,
+        "icon": "\ud83d\udce7",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"azarjoudar@gmail.com\",\"subject\":\"Flow FinalTest executed\",\"body\":\"The flow \\\"FinalTest\\\" was triggered successfully!\"}]}"
+    },
+    {
+        "id": 18,
+        "name": "azaFinalTest",
+        "description": "Email flow created via Atlas: azaFinalTest",
+        "trigger": "manual",
+        "executions": 1,
+        "icon": "\ud83d\udce7",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"azarjoudar@gmail.com\",\"subject\":\"Flow azaFinalTest executed\",\"body\":\"The flow \\\"azaFinalTest\\\" was triggered successfully!\"}]}"
+    },
+    {
+        "id": 19,
+        "name": "thevinal",
+        "description": "Email flow created via Atlas: thevinal",
+        "trigger": "manual",
+        "executions": 0,
+        "icon": "\ud83d\udce7",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"azarjoudar@gmail.com\",\"subject\":\"Flow thevinal executed\",\"body\":\"The flow \\\"thevinal\\\" was triggered successfully!\"}]}"
+    },
+    {
+        "id": 20,
+        "name": "irnal",
+        "description": "Email flow created via Atlas: irnal",
+        "trigger": "manual",
+        "executions": 1,
+        "icon": "\ud83d\udce7",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"azarjoudar@gmail.com\",\"subject\":\"Flow irnal executed\",\"body\":\"The flow \\\"irnal\\\" was triggered successfully!\"}]}"
+    },
+    {
+        "id": 21,
+        "name": "TestPHPMailer",
+        "description": "Email flow created via Atlas: TestPHPMailer",
+        "trigger": "manual",
+        "executions": 4,
+        "icon": "\ud83d\udce7",
+        "config": "{\"actions\":[{\"type\":\"email\",\"to\":\"azarjoudar@gmail.com\",\"subject\":\"Flow TestPHPMailer executed\",\"body\":\"The flow \\\"TestPHPMailer\\\" was triggered successfully!\"}]}"
+    }
+]

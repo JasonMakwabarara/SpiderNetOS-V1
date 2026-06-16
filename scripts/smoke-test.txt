@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+BASE_URL=${1:-http://localhost:8000}
+echo "Smoke testing $BASE_URL"
+
+curl -f "$BASE_URL/api/health" || exit 1
+
+curl -f -X POST "$BASE_URL/api/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@spidernetos.com","password":"Zukaarimoto01!"}' || exit 1
+
+TOKEN=$(curl -s -X POST "$BASE_URL/api/login" -H "Content-Type: application/json" -d '{"email":"admin@spidernetos.com","password":"Zukaarimoto01!"}' | jq -r '.token')
+curl -f -H "Authorization: Bearer $TOKEN" "$BASE_URL/api/agents" || exit 1
+
+echo "✅ Smoke test passed"
