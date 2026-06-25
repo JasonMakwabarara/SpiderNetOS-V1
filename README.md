@@ -1,59 +1,78 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SpiderNetOS
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+An Attio-inspired **AI Operating System (AIOS)**: a multi-tenant platform that combines a
+flexible custom-object data model, a semantic "universal context" layer (pgvector RAG),
+LLM-driven automation (the **Atlas** assistant), agents, and workflow automation.
 
-## About Laravel
+- **Backend:** Laravel 12 (PHP 8.2+), PostgreSQL + [pgvector], Redis (queue + cache).
+- **Frontend:** Vue 3 + Vite SPA in [`cockpit/`](cockpit/) ("the cockpit").
+- **Auth:** Laravel Sanctum token auth; strict server-derived multi-tenancy.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+> The repository root also contains a minimal Tailwind/Vite setup and a Laravel `welcome`
+> view, but the product frontend is the **cockpit** SPA.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Architecture
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```
+cockpit/ (Vue 3 SPA)  ──HTTP──▶  Laravel API (routes/api.php)
+                                   ├─ Sanctum auth + tenant scope (per-user tenant_id)
+                                   ├─ InferenceService ──▶ ProviderResolver ──▶ ai_providers (DB)
+                                   ├─ EmbeddingService ──▶ memories.embedding (pgvector)
+                                   ├─ Records / ObjectTypes / Attributes (custom-object model)
+                                   ├─ Atlas (LLM tool-calling loop)
+                                   └─ Flows + Agents (queued jobs)
+PostgreSQL (pgvector) + Redis (queue/cache) via docker-compose
+```
 
-## Learning Laravel
+### AI providers — no hardcoded keys
+AI provider credentials are **never** stored in code or `.env`. They live, encrypted at rest,
+in the `ai_providers` table and are managed from the super-admin provider panel.
+`ProviderResolver` returns the ordered list of usable providers for the current tenant
+(tenant overrides first, then platform defaults), and `InferenceService` / `EmbeddingService`
+iterate that list as a fallback chain.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### Multi-tenancy
+The active tenant is always derived from the authenticated user (`users.tenant_id`).
+Client-supplied `X-Tenant-ID` headers are ignored/rejected. A global Eloquent scope enforces
+isolation on every tenant-owned model.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Local setup
 
-## Laravel Sponsors
+Prerequisites: PHP 8.2+, Composer, Node 18+, Docker (for Postgres + Redis).
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+cp .env.example .env
+composer install
+php artisan key:generate
 
-### Premium Partners
+# Start Postgres (pgvector) + Redis + queue worker
+docker compose up -d
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+php artisan migrate
+php artisan db:seed
 
-## Contributing
+# Cockpit SPA
+cd cockpit
+npm install
+npm run dev
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Serve the API with `php artisan serve` (http://localhost:8000) and the cockpit with
+`npm run dev` (Vite). Set `VITE_API_BASE_URL` in `cockpit/.env` if the API is elsewhere.
 
-## Code of Conduct
+## Tests & quality gates
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+./vendor/bin/pint --test     # code style
+php artisan test             # PHPUnit (auth, tenant isolation, provider resolution, RAG)
+cd cockpit && npm run build  # frontend build
+```
 
-## Security Vulnerabilities
+CI additionally runs a secret scan (gitleaks). See `.github/workflows/`.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Security
 
-## License
+API/AI keys must never be committed. See [`RUNBOOK.md`](RUNBOOK.md) for the secret-rotation
+and (if ever needed) git-history-purge procedure.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+[pgvector]: https://github.com/pgvector/pgvector
