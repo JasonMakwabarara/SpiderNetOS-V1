@@ -14,7 +14,18 @@ class EmailConnector implements IntegrationConnector
             return ['ok' => false, 'message' => 'From address or username is required.'];
         }
 
-        return ['ok' => true, 'message' => 'Email integration configured.'];
+        try {
+            SendEmailJob::dispatchSync([
+                'to' => $from,
+                'subject' => 'SpiderNetOS SMTP connection test',
+                'body' => 'Your email integration is configured correctly.',
+                'integration_id' => $integration->id,
+            ]);
+
+            return ['ok' => true, 'message' => "Test email sent to {$from}."];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'message' => $e->getMessage()];
+        }
     }
 
     public function send(Integration $integration, string $action, array $payload): array
@@ -36,6 +47,10 @@ class EmailConnector implements IntegrationConnector
 
     public function sync(Integration $integration): array
     {
-        return ['ok' => true, 'message' => 'Inbound email sync is not enabled yet.', 'imported' => 0];
+        return [
+            'ok' => true,
+            'message' => 'Inbound email is handled via the webhook URL on this integration.',
+            'imported' => 0,
+        ];
     }
 }

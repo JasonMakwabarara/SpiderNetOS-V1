@@ -14,7 +14,17 @@ class SlackConnector implements IntegrationConnector
             return ['ok' => false, 'message' => 'Webhook URL is required.'];
         }
 
-        return ['ok' => true, 'message' => 'Slack webhook configured.'];
+        try {
+            $res = Http::timeout(10)->post($url, [
+                'text' => ':white_check_mark: SpiderNetOS connection test',
+            ]);
+
+            return $res->successful()
+                ? ['ok' => true, 'message' => 'Slack webhook verified — test message sent.']
+                : ['ok' => false, 'message' => 'Slack returned HTTP '.$res->status()];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'message' => $e->getMessage()];
+        }
     }
 
     public function send(Integration $integration, string $action, array $payload): array

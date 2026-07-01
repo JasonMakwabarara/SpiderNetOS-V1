@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -41,7 +42,25 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('login', function ($request) {
-            return Limit::perMinute(10)->by($request->ip());
+            $email = strtolower((string) $request->input('email', ''));
+            $limits = [Limit::perMinute(10)->by($request->ip())];
+            if ($email !== '') {
+                $limits[] = Limit::perMinute(5)->by('login:'.$email);
+            }
+
+            return $limits;
+        });
+
+        RateLimiter::for('webhooks', function ($request) {
+            $token = (string) $request->route('token', '');
+
+            return Limit::perMinute(60)->by($token !== '' ? 'hook:'.$token : $request->ip());
+        });
+
+        ResetPassword::createUrlUsing(function ($user, string $token) {
+            $base = rtrim(config('services.cockpit.url', 'http://localhost:5173'), '/');
+
+            return $base.'/reset-password?token='.$token.'&email='.urlencode($user->email);
         });
     }
 }

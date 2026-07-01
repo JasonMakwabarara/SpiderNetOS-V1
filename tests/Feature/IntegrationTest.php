@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\UserRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -17,6 +18,8 @@ class IntegrationTest extends TestCase
 
     public function test_tenant_admin_can_create_and_test_slack_integration(): void
     {
+        Http::fake(['hooks.slack.com/*' => Http::response('ok')]);
+
         $user = $this->tenantAdmin();
         Sanctum::actingAs($user);
 

@@ -82,6 +82,20 @@
             <label>Body</label><textarea v-model="selectedNodeObj.config.body" rows="3"></textarea>
           </template>
 
+          <template v-else-if="selectedNodeObj.type === 'integration'">
+            <label>Integration</label>
+            <select v-model="selectedNodeObj.config.integration_id">
+              <option value="">— select —</option>
+              <option v-for="i in integrations" :key="i.id" :value="i.id">{{ i.name }} ({{ i.type }})</option>
+            </select>
+            <label>To (email/phone — optional for Slack)</label>
+            <input v-model="selectedNodeObj.config.to" placeholder="{{email}}" />
+            <label>Subject (email)</label>
+            <input v-model="selectedNodeObj.config.subject" />
+            <label>Message</label>
+            <textarea v-model="selectedNodeObj.config.message" rows="3"></textarea>
+          </template>
+
           <template v-else-if="selectedNodeObj.type === 'slack'">
             <label>Webhook URL</label><input v-model="selectedNodeObj.config.webhook" />
             <label>Message</label><textarea v-model="selectedNodeObj.config.message" rows="3"></textarea>
@@ -155,6 +169,7 @@ export default {
       nodes: [],
       edges: [],
       objects: [],
+      integrations: [],
       selectedNode: null,
       selectedEdge: null,
       linking: null,
@@ -165,6 +180,7 @@ export default {
         { type: 'ai', icon: '✨', label: 'AI Step' },
         { type: 'email', icon: '📧', label: 'Email' },
         { type: 'slack', icon: '💬', label: 'Slack' },
+        { type: 'integration', icon: '🔌', label: 'Integration' },
         { type: 'webhook', icon: '🌐', label: 'Webhook' },
         { type: 'create_record', icon: '🗂️', label: 'Create Record' },
         { type: 'log', icon: '📝', label: 'Log' }
@@ -177,6 +193,7 @@ export default {
   async mounted() {
     await this.load()
     try { const res = await api.get('/objects'); this.objects = res.data || [] } catch(e) {}
+    try { const res = await api.get('/integrations'); this.integrations = res.data || [] } catch(e) {}
   },
   methods: {
     async load() {
@@ -204,6 +221,10 @@ export default {
         case 'condition': return `${c.left || '?'} ${c.op || '=='} ${c.right || '?'}`
         case 'ai': return c.prompt ? c.prompt.slice(0, 28) + '…' : 'no prompt'
         case 'email': return c.to || 'no recipient'
+        case 'integration': {
+          const i = this.integrations.find(x => String(x.id) === String(c.integration_id))
+          return i ? i.name : 'no integration'
+        }
         case 'create_record': return c.object || 'no object'
         case 'webhook': return c.url || 'no url'
         case 'slack': return 'slack message'
@@ -297,7 +318,7 @@ export default {
 </script>
 
 <style scoped>
-.builder { height: 100vh; display: flex; flex-direction: column; background: #0f172a; color: #e2e8f0; }
+.builder { height: 100%; display: flex; flex-direction: column; background: #0f172a; color: #e2e8f0; }
 .builder-bar { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1.25rem; background: #1e293b; border-bottom: 1px solid #334155; }
 .builder-bar h1 { font-size: 1.1rem; font-weight: 600; flex: 1; }
 .bar-back { background: none; border: none; color: #93c5fd; cursor: pointer; font-weight: 600; }

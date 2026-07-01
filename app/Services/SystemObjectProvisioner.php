@@ -39,6 +39,8 @@ class SystemObjectProvisioner
                     ['slug' => 'email', 'name' => 'Email', 'type' => Attribute::TYPE_EMAIL, 'is_unique' => true],
                     ['slug' => 'phone', 'name' => 'Phone', 'type' => Attribute::TYPE_TEXT],
                     ['slug' => 'company', 'name' => 'Company', 'type' => Attribute::TYPE_RELATIONSHIP, 'config' => ['target_object' => 'companies']],
+                    ['slug' => 'hubspot_id', 'name' => 'HubSpot ID', 'type' => Attribute::TYPE_TEXT],
+                    ['slug' => 'salesforce_id', 'name' => 'Salesforce ID', 'type' => Attribute::TYPE_TEXT],
                 ],
             ],
             [

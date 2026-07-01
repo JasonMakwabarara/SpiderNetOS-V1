@@ -45,6 +45,7 @@ return [
         'redirect_uri' => env('HUBSPOT_REDIRECT_URI'),
         'scopes' => [
             'crm.objects.contacts.read',
+            'crm.objects.contacts.write',
             'oauth',
         ],
     ],

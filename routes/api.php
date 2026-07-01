@@ -31,13 +31,18 @@ use Illuminate\Support\Facades\Route;
 // Public
 Route::get('/health', [HealthController::class, 'index']);
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:login');
+Route::post('/password/forgot', [AuthController::class, 'forgotPassword'])->middleware('throttle:login');
+Route::post('/password/reset', [AuthController::class, 'resetPassword'])->middleware('throttle:login');
 
 // Public webhook trigger for flows (authenticated by the opaque token; tenant is
 // resolved from the matched flow, so this lives outside the auth/tenant group).
-Route::post('/hooks/flow/{token}', [FlowWebhookController::class, 'handle']);
+Route::post('/hooks/flow/{token}', [FlowWebhookController::class, 'handle'])
+    ->middleware('throttle:webhooks');
 
 // Inbound email capture (token resolves tenant from the integration).
-Route::post('/hooks/email/{token}', [EmailInboundController::class, 'handle']);
+Route::post('/hooks/email/{token}', [EmailInboundController::class, 'handle'])
+    ->middleware('throttle:webhooks');
 
 // OAuth provider callbacks (state binds tenant + user).
 Route::get('/integrations/oauth/hubspot/callback', [IntegrationOAuthController::class, 'callbackHubSpot']);
@@ -47,6 +52,10 @@ Route::get('/integrations/oauth/hubspot/callback', [IntegrationOAuthController::
 Route::middleware(['auth:sanctum', 'tenant', SubstituteBindings::class])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::put('/password', [AuthController::class, 'changePassword']);
+    Route::get('/sessions', [AuthController::class, 'sessions']);
+    Route::delete('/sessions', [AuthController::class, 'revokeOtherSessions']);
+    Route::delete('/sessions/{tokenId}', [AuthController::class, 'revokeSession']);
 
     // Agents — members can list/chat; admins manage
     Route::get('/agents', [AgentController::class, 'index']);
