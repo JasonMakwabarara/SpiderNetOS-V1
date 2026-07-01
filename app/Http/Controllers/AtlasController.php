@@ -2,76 +2,62 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Agent;
 use App\Models\Flow;
-use Illuminate\Support\Str;
+use App\Models\ObjectType;
+use App\Services\AtlasAssistant;
+use App\Services\EventLogger;
+use Illuminate\Http\Request;
 
+/**
+ * Atlas — the conversational "Ask SpiderNet" assistant. Natural-language requests
+ * are handled by an LLM tool-calling loop ({@see AtlasAssistant}); a few slash
+ * commands are kept as instant, deterministic shortcuts.
+ */
 class AtlasController extends Controller
 {
+    public function __construct(protected AtlasAssistant $assistant)
+    {
+    }
+
     public function chat(Request $request)
     {
-        $text = $request->input('message', '');
-        $lower = strtolower($text);
-        
-        if (str_contains($lower, 'create agent')) {
-            $name = trim(preg_replace('/create agent/i', '', $text));
-            if (empty($name)) {
-                return response()->json(['response' => 'Please specify an agent name']);
-            }
-            $agent = Agent::create([
-                'name' => $name,
-                'slug' => Str::slug($name),
-                'description' => "Created via Atlas",
-                'status' => 'inactive',
-                'tenant_id' => 1
-            ]);
-            return response()->json(['response' => "✅ Agent '$name' created!"]);
+        $text = trim($request->input('message', ''));
+
+        if ($text === '') {
+            return response()->json(['response' => 'Ask me anything, or type /help.']);
         }
-        
-        if (str_contains($lower, 'create flow')) {
-            $name = trim(preg_replace('/create flow/i', '', $text));
-            if (empty($name)) {
-                return response()->json(['response' => 'Please specify a flow name']);
-            }
-            $flow = Flow::create([
-                'name' => $name,
-                'slug' => Str::slug($name),
-                'description' => "Created via Atlas",
-                'trigger' => 'manual',
-                'tenant_id' => 1
-            ]);
-            return response()->json(['response' => "✅ Flow '$name' created!"]);
+
+        if (str_starts_with($text, '/')) {
+            return response()->json(['response' => $this->slashCommand(strtolower($text))]);
         }
-        
-        if ($lower === '/agents' || str_contains($lower, 'list agents')) {
-            $agents = Agent::all();
-            $list = "**📋 Your Agents:**\n";
-            foreach ($agents as $a) {
-                $list .= "• {$a['name']} ({$a['status']})\n";
-            }
-            return response()->json(['response' => $list ?: 'No agents yet.']);
-        }
-        
-        if ($lower === '/flows' || str_contains($lower, 'list flows')) {
-            $flows = Flow::all();
-            $list = "**📋 Your Flows:**\n";
-            foreach ($flows as $f) {
-                $list .= "• {$f['name']} (runs: {$f['executions']})\n";
-            }
-            return response()->json(['response' => $list ?: 'No flows yet.']);
-        }
-        
-        if ($lower === '/status') {
-            $agentsCount = Agent::count();
-            $flowsCount = Flow::count();
-            return response()->json(['response' => "**System Status:**\n- Agents: $agentsCount\n- Flows: $flowsCount"]);
-        }
-        
-        if ($lower === '/help') {
-            return response()->json(['response' => "**Available Commands:**\n\n• `create agent [name]` - Create a new AI agent\n• `create flow [name]` - Create a new workflow\n• `/agents` - List all agents\n• `/flows` - List all flows\n• `/status` - System status\n• `/help` - Show this help"]);
-        }
-        
-        return response()->json(['response' => "I'm here to help you manage your AI Operating System. Try `/help` for commands."]);
+
+        EventLogger::log('atlas.chat', '', ['len' => strlen($text)]);
+        $response = $this->assistant->ask($text);
+
+        return response()->json(['response' => $response]);
+    }
+
+    protected function slashCommand(string $cmd): string
+    {
+        return match ($cmd) {
+            '/agents' => $this->bullets('Agents', Agent::all()->map(fn ($a) => "{$a->name} ({$a->status})")),
+            '/flows' => $this->bullets('Flows', Flow::all()->map(fn ($f) => "{$f->name} (runs: {$f->executions})")),
+            '/objects' => $this->bullets('Objects', ObjectType::all()->map(fn ($o) => "{$o->name} [{$o->slug}]")),
+            '/status' => "**System Status**\n- Agents: ".Agent::count()
+                ."\n- Flows: ".Flow::count()
+                ."\n- Objects: ".ObjectType::count(),
+            '/help' => "**Atlas commands**\n\n".
+                "Just talk to me naturally — I can search and create records, run agents, build flows, and search your knowledge base.\n\n".
+                "Shortcuts:\n- `/agents` list agents\n- `/flows` list flows\n- `/objects` list data objects\n- `/status` system status\n- `/help` this message",
+            default => "Unknown command. Type `/help`.",
+        };
+    }
+
+    protected function bullets(string $title, $items): string
+    {
+        $list = $items->map(fn ($i) => "• {$i}")->implode("\n");
+
+        return "**Your {$title}:**\n".($list ?: 'None yet.');
     }
 }

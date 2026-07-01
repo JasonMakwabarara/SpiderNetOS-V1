@@ -2,39 +2,42 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Tenant;
-use App\Models\User;
 use App\Models\Agent;
 use App\Models\Flow;
+use App\Models\Tenant;
+use App\Models\User;
+use App\Services\SystemObjectProvisioner;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
-        // Create default tenant
         $tenant = Tenant::create([
             'name' => 'Default Organization',
             'domain' => 'spidernetos.com',
-            'settings' => json_encode(['theme' => 'dark', 'timezone' => 'UTC'])
+            // settings is array-cast — pass an array, not a JSON string.
+            'settings' => ['theme' => 'dark', 'timezone' => 'UTC'],
         ]);
 
-        // Create admin user
+        // Super-admin (manages the platform AI provider panel). Change the
+        // password immediately after first login.
         User::create([
             'name' => 'Super Admin',
             'email' => 'admin@spidernetos.com',
-            'password' => Hash::make('Zukaarimoto01!'),
+            'password' => Hash::make('change-me-on-first-login'),
             'tenant_id' => $tenant->id,
+            'is_super_admin' => true,
+            'role' => 'super_admin',
         ]);
 
-        // Create sample agents
         Agent::create([
             'tenant_id' => $tenant->id,
             'name' => 'SalesBot Pro',
             'slug' => 'salesbot-pro',
             'role' => 'Sales',
-            'capabilities' => json_encode(['lead_qualification', 'product_recommendations', 'pricing_info']),
+            'capabilities' => ['lead_qualification', 'product_recommendations', 'pricing_info'],
             'description' => 'AI sales assistant for lead qualification and product recommendations',
             'status' => 'active',
         ]);
@@ -44,21 +47,24 @@ class DatabaseSeeder extends Seeder
             'name' => 'SupportAgent',
             'slug' => 'support-agent',
             'role' => 'Support',
-            'capabilities' => json_encode(['ticket_resolution', 'faq_answers', 'issue_tracking']),
+            'capabilities' => ['ticket_resolution', 'faq_answers', 'issue_tracking'],
             'description' => 'Customer support agent for ticket resolution and FAQs',
             'status' => 'active',
         ]);
 
-        // Create sample flow
         Flow::create([
             'tenant_id' => $tenant->id,
             'name' => 'Order Processing',
             'slug' => 'order-processing',
             'trigger' => 'webhook',
-            'config' => json_encode(['actions' => [
-                ['type' => 'email', 'to' => 'admin@example.com', 'subject' => 'New Order', 'body' => 'Order received']
-            ]]),
+            'config' => ['actions' => [
+                ['type' => 'email', 'to' => 'admin@example.com', 'subject' => 'New Order', 'body' => 'Order received'],
+            ]],
             'executions' => 0,
         ]);
+
+        // Provision the built-in flexible-data-model objects (People, Companies,
+        // Deals) so the CRM/records layer is usable out of the box.
+        app(SystemObjectProvisioner::class)->provision($tenant->id);
     }
 }

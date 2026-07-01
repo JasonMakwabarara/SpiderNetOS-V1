@@ -8,7 +8,9 @@
   "dependencies": {
     "vue": "^3.4.27",
     "vue-router": "^4.3.2",
-    "axios": "^1.7.2"
+    "axios": "^1.7.2",
+    "laravel-echo": "^1.19.0",
+    "pusher-js": "^8.4.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",

@@ -45,3 +45,6 @@ composer.phar
 *.backup
 *.orig
 *.tmp
+
+# Legacy flat-file persistence (superseded by the database)
+/data

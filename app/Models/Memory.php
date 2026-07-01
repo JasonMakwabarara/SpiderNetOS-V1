@@ -2,23 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 
 class Memory extends Model
 {
+    use BelongsToTenant;
+
     protected $table = 'memories';
-    protected $fillable = ['tenant_id', 'content', 'embedding', 'metadata'];
-    protected $casts = ['metadata' => 'array', 'embedding' => 'array'];
 
-    protected static function booted()
-    {
-        static::addGlobalScope('tenant', function (Builder $builder) {
-            if ($tenantId = request()->header('X-Tenant-ID')) {
-                $builder->where('tenant_id', $tenantId);
-            }
-        });
-    }
+    protected $fillable = ['tenant_id', 'source_type', 'source_id', 'content', 'embedding', 'metadata'];
 
-    public function tenant() { return $this->belongsTo(Tenant::class); }
+    protected $casts = ['metadata' => 'array'];
 }

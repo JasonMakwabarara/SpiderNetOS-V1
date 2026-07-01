@@ -3,24 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Models\Agent;
+use App\Models\AgentRun;
+use App\Services\AgentDispatcher;
+use App\Services\AgentWorker;
+use App\Services\EventLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use GuzzleHttp\Client;
 
 class AgentController extends Controller
 {
-    protected $openaiKey;
-
-    public function __construct()
-    {
-        $this->openaiKey = env('OPENAI_API_KEY');
+    public function __construct(
+        protected AgentWorker $worker,
+    ) {
     }
 
-    public function index(Request $request)
+    public function index()
     {
-        $tenantId = $request->header('X-Tenant-ID', 1);
-        $agents = Agent::where('tenant_id', $tenantId)->get();
-        return response()->json($agents);
+        return response()->json(Agent::all());
     }
 
     public function store(Request $request)
@@ -28,14 +27,18 @@ class AgentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string',
             'role' => 'nullable|string',
-            'description' => 'nullable|string'
+            'type' => 'nullable|string',
+            'description' => 'nullable|string',
+            'config' => 'nullable|array',
+            'capabilities' => 'nullable|array',
         ]);
-        
-        $validated['slug'] = Str::slug($validated['name']);
-        $validated['tenant_id'] = $request->header('X-Tenant-ID', 1);
-        $validated['status'] = 'active';
-        
+
+        $validated['slug'] = Str::slug($validated['name']).'-'.Str::random(6);
+        $validated['status'] = $request->input('status', 'active');
+
         $agent = Agent::create($validated);
+        EventLogger::log('agent.created', (string) $agent->id, ['name' => $agent->name]);
+
         return response()->json($agent, 201);
     }
 
@@ -49,66 +52,80 @@ class AgentController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string',
             'role' => 'nullable|string',
+            'type' => 'nullable|string',
             'description' => 'nullable|string',
-            'status' => 'sometimes|string'
+            'status' => 'sometimes|string',
+            'config' => 'nullable|array',
+            'capabilities' => 'nullable|array',
         ]);
-        
+
         if (isset($validated['name'])) {
-            $validated['slug'] = Str::slug($validated['name']);
+            $validated['slug'] = Str::slug($validated['name']).'-'.Str::random(6);
         }
-        
+
         $agent->update($validated);
+        EventLogger::log('agent.updated', (string) $agent->id, ['name' => $agent->name]);
+
         return response()->json($agent);
     }
 
     public function destroy(Agent $agent)
     {
+        EventLogger::log('agent.deleted', (string) $agent->id, ['name' => $agent->name]);
         $agent->delete();
+
         return response()->json(null, 204);
     }
 
     public function run(Request $request, Agent $agent)
     {
         $message = $request->input('message', 'Hello');
-        
-        $systemPrompt = "You are {$agent->name}. Role: {$agent->role}. Be helpful, professional, and concise.";
-        
-        if (!$this->openaiKey) {
-            return response()->json([
-                'result' => ['response' => "OpenAI API key is missing. Please check .env file."]
-            ]);
-        }
-        
+        $context = $request->input('context', []);
+
+        $run = AgentRun::create([
+            'agent_id' => $agent->id,
+            'orchestrator' => AgentRun::ORCHESTRATOR_AGENT,
+            'status' => AgentRun::STATUS_RUNNING,
+            'trigger' => 'manual',
+            'goal' => $message,
+            'context' => $context,
+            'record_id' => $context['record_id'] ?? null,
+            'started_at' => now(),
+        ]);
+
         try {
-            $client = new Client([
-                'timeout' => 30,
-                'verify' => false
+            $result = AgentDispatcher::suppress(
+                fn () => $this->worker->run($agent, $message, $context)
+            );
+
+            $run->update([
+                'status' => AgentRun::STATUS_SUCCESS,
+                'steps' => $result['steps'],
+                'result' => $result['response'],
+                'finished_at' => now(),
             ]);
-            
-            $response = $client->post('https://api.openai.com/v1/chat/completions', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $this->openaiKey,
-                    'Content-Type' => 'application/json',
-                ],
-                'json' => [
-                    'model' => 'gpt-4o-mini',
-                    'messages' => [
-                        ['role' => 'system', 'content' => $systemPrompt],
-                        ['role' => 'user', 'content' => $message],
-                    ],
-                    'max_tokens' => 200,
-                ],
-            ]);
-            
-            $body = json_decode($response->getBody(), true);
-            $aiResponse = $body['choices'][0]['message']['content'] ?? "I'm not sure how to respond.";
-            
-            return response()->json(['result' => ['response' => $aiResponse]]);
-            
-        } catch (\Exception $e) {
+
+            EventLogger::log('agent.run', (string) $agent->id, ['message' => $message]);
+
             return response()->json([
-                'result' => ['response' => "Error: " . $e->getMessage()]
+                'result' => ['response' => $result['response']],
+                'run' => $run->fresh(),
             ]);
+        } catch (\Throwable $e) {
+            $run->update([
+                'status' => AgentRun::STATUS_FAILED,
+                'error' => $e->getMessage(),
+                'finished_at' => now(),
+            ]);
+
+            return response()->json(['error' => $e->getMessage(), 'run' => $run->fresh()], 500);
         }
+    }
+
+    public function runs(Agent $agent)
+    {
+        return response()->json(
+            $agent->runs()->latest()->limit(25)->get()
+        );
     }
 }

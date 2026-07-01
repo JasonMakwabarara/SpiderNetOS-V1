@@ -31,10 +31,10 @@ import api from '../services/api'
 export default {
   data() {
     return {
-      messages: [{ id: 1, role: 'assistant', content: "👋 **Hello! I'm Atlas, your AI Operating System assistant.**\n\nI can help you:\n• Create task-specific agents (Sales, Support, Data Analyst, etc.)\n• Build automated workflows\n• Monitor your AI workspace\n• Answer questions about SpiderNetOS\n\n**Try these commands:**\n• `create agent SalesBot`\n• `create flow DataPipeline`\n• `create email flow Newsletter to email@example.com`\n• `create slack flow Alerts webhook https://hooks.slack.com/...`\n• `/agents`\n• `/flows`\n• `/status`\n• `/help`" }],
+      messages: [{ id: 1, role: 'assistant', content: "👋 **Hello! I'm Atlas — Ask SpiderNet.**\n\nTalk to me naturally and I'll operate your workspace for you. I can:\n• Search and create records (people, companies, deals…)\n• Create and run AI agents\n• Build automation workflows\n• Search your knowledge base and remember your preferences\n\n**Try asking:**\n• \"Add Ada Lovelace as a person with email ada@example.com\"\n• \"Which companies do we have?\"\n• \"Create a Support agent called HelpBot\"\n• `/status` · `/objects` · `/agents` · `/help`" }],
       inputMessage: '',
       loading: false,
-      suggestions: ['create agent SalesBot', 'create flow DataPipeline', 'create email flow Test to email@example.com', '/agents', '/help']
+      suggestions: ['Add a person named Ada Lovelace', 'Which companies do we have?', 'Create a Support agent called HelpBot', '/objects', '/help']
     }
   },
   methods: {
@@ -56,98 +56,15 @@ export default {
         this.scrollToBottom()
       }
     },
+    // Atlas is now LLM-powered with tool-calling + long-term memory on the
+    // backend. The UI forwards everything to /atlas/chat, which decides whether
+    // to read/create records, run agents, build flows, or answer directly.
     async processCommand(text) {
-      const lower = text.toLowerCase()
-      
-      // CREATE EMAIL FLOW
-      if (lower.includes('create email flow')) {
-        const match = text.match(/create email flow (.+?) to (.+)/i)
-        if (!match) return '❌ Please use: create email flow [name] to [email@example.com]'
-        const name = match[1].trim()
-        const email = match[2].trim()
-        try {
-          const flowData = {
-            name: name,
-            description: `Email flow created via Atlas: ${name}`,
-            trigger: 'manual',
-            icon: '📧',
-            config: { actions: [{ type: 'email', to: email, subject: `Flow ${name} executed`, body: `The flow "${name}" was triggered successfully!` }] }
-          }
-          const res = await api.post('/flows', flowData)
-          return `✅ Email flow "${res.data.name}" created!\n\n📧 Will send to: ${email}\n▶️ Go to Flows page and click Execute to test it.`
-        } catch(e) { return '❌ Failed to create email flow. Make sure backend is running.' }
-      }
-      
-      // CREATE SLACK FLOW
-      if (lower.includes('create slack flow')) {
-        const match = text.match(/create slack flow (.+?) webhook (.+)/i)
-        if (!match) return '❌ Please use: create slack flow [name] webhook [https://hooks.slack.com/...]'
-        const name = match[1].trim()
-        let webhook = match[2].trim()
-        try {
-          const flowData = {
-            name: name,
-            description: `Slack flow created via Atlas: ${name}`,
-            trigger: 'manual',
-            icon: '💬',
-            config: { actions: [{ type: 'slack', webhook: webhook, message: `The flow "${name}" was executed in SpiderNetOS!` }] }
-          }
-          const res = await api.post('/flows', flowData)
-          return `✅ Slack flow "${res.data.name}" created!\n\n💬 Will send to your Slack channel.\n▶️ Go to Flows page and click Execute to test it.`
-        } catch(e) { return '❌ Failed to create Slack flow.' }
-      }
-      
-      // CREATE AGENT
-      if (lower.includes('create agent')) {
-        const name = text.replace(/create agent/i, '').trim()
-        if (!name) return '❌ Please specify an agent name.'
-        try {
-          const res = await api.post('/agents', { name, description: `Created via Atlas: ${name}`, role: 'Custom', status: 'inactive', icon: '🤖' })
-          return `✅ Agent "${res.data.name}" created successfully!\n\nYou can now:\n• Edit its role and capabilities on the Agents page\n• Chat with it to perform specific tasks`
-        } catch(e) { return '❌ Failed to create agent.' }
-      }
-      
-      // CREATE FLOW
-      if (lower.includes('create flow') && !lower.includes('email') && !lower.includes('slack')) {
-        const name = text.replace(/create flow/i, '').trim()
-        if (!name) return '❌ Please specify a flow name.'
-        try {
-          const res = await api.post('/flows', { name, description: `Created via Atlas: ${name}`, trigger: 'manual', icon: '⚡' })
-          return `✅ Flow "${res.data.name}" created successfully!\n\nYou can now:\n• Add actions (Slack, Email, Webhook) from the Flows page\n• Click Execute to run it`
-        } catch(e) { return '❌ Failed to create flow.' }
-      }
-      
-      // /AGENTS COMMAND
-      if (lower === '/agents' || lower === 'list agents') {
-        const res = await api.get('/agents')
-        if (res.data.length === 0) return '📋 No agents yet. Create one with "create agent [name]"'
-        return "**📋 Your Agents:**\n" + res.data.map(a => `• ${a.name} (${a.role || 'Custom'}) - ${a.status}`).join('\n')
-      }
-      
-      // /FLOWS COMMAND
-      if (lower === '/flows' || lower === 'list flows') {
-        const res = await api.get('/flows')
-        if (res.data.length === 0) return '📋 No flows yet. Create one with "create flow [name]"'
-        return "**📋 Your Flows:**\n" + res.data.map(f => `• ${f.name} (${f.executions || 0} runs)`).join('\n')
-      }
-      
-      // /STATUS COMMAND
-      if (lower === '/status') {
-        const [agents, flows] = await Promise.all([api.get('/agents'), api.get('/flows')])
-        return `📊 **SpiderNetOS Status**\n• Agents: ${agents.data.length}\n• Flows: ${flows.data.length}\n• System: Operational\n• AI: Ready`
-      }
-      
-      // /HELP COMMAND
-      if (lower === '/help') {
-        return "**📚 Available Commands:**\n\n• `create agent [name]` - Create a new AI agent\n• `create flow [name]` - Create a new workflow\n• `create email flow [name] to [email]` - Create email notification flow\n• `create slack flow [name] webhook [url]` - Create Slack notification flow\n• `/agents` - List all agents\n• `/flows` - List all flows\n• `/status` - System status\n• `/help` - Show this help"
-      }
-      
-      // FALLBACK - General AI response
       try {
         const res = await api.post('/atlas/chat', { message: text })
         return res.data.response || "I'm here to help you manage your AI Operating System. Try `/help` for commands."
       } catch(e) {
-        return "I'm here to help you manage your AI Operating System. Try `/help` for commands."
+        return "⚠️ I couldn't reach the assistant. Make sure you're signed in and the backend is running."
       }
     },
     sendSuggestion(suggestion) {

@@ -11,6 +11,35 @@
     <div class="stats-container">
       <div class="stat-card"><div class="stat-icon purple">🤖</div><div class="stat-info"><span class="stat-value">{{ agents.length }}</span><span class="stat-label">Total Agents</span></div></div>
       <div class="stat-card"><div class="stat-icon green">✅</div><div class="stat-info"><span class="stat-value">{{ activeCount }}</span><span class="stat-label">Active</span></div></div>
+      <div class="stat-card"><div class="stat-icon blue">🧠</div><div class="stat-info"><span class="stat-value">{{ hannahRuns.length }}</span><span class="stat-label">Hannah Runs</span></div></div>
+    </div>
+
+    <!-- Hannah orchestrator -->
+    <div class="hannah-panel">
+      <div class="hannah-head">
+        <div>
+          <h2>🧠 Hannah — Multi-Agent Orchestrator</h2>
+          <p>Describe a goal; Hannah plans sub-tasks and delegates to your role agents.</p>
+        </div>
+        <button class="btn-ghost" @click="loadHannahRuns">Refresh runs</button>
+      </div>
+      <div class="hannah-input">
+        <textarea v-model="hannahGoal" rows="2" placeholder="e.g. Qualify the latest deals and draft outreach for hot leads"></textarea>
+        <button class="btn-create" :disabled="hannahLoading || !hannahGoal.trim()" @click="runHannah">
+          {{ hannahLoading ? 'Orchestrating…' : 'Orchestrate' }}
+        </button>
+      </div>
+      <div v-if="hannahResult" class="hannah-result">
+        <div class="result-label">Latest result</div>
+        <p>{{ hannahResult }}</p>
+      </div>
+      <div v-if="hannahRuns.length" class="hannah-runs">
+        <div v-for="run in hannahRuns.slice(0, 5)" :key="run.id" class="run-row" @click="expandRun(run)">
+          <span :class="['run-status', run.status]">{{ run.status }}</span>
+          <span class="run-goal">{{ run.goal }}</span>
+          <span class="run-time">{{ relTime(run.finished_at || run.created_at) }}</span>
+        </div>
+      </div>
     </div>
 
     <div class="agents-grid">
@@ -62,6 +91,33 @@
             <label>Description</label>
             <textarea v-model="form.description" placeholder="What should this agent do?" rows="3"></textarea>
           </div>
+          <div class="field-group">
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="form.autonomousEnabled" />
+              Autonomous mode (react to record events)
+            </label>
+          </div>
+          <template v-if="form.autonomousEnabled">
+            <div class="field-group">
+              <label>Watch object</label>
+              <select v-model="form.autonomousObject">
+                <option value="deals">deals</option>
+                <option value="people">people</option>
+                <option value="companies">companies</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>Events</label>
+              <div class="event-checks">
+                <label><input type="checkbox" value="created" v-model="form.autonomousEvents" /> created</label>
+                <label><input type="checkbox" value="updated" v-model="form.autonomousEvents" /> updated</label>
+              </div>
+            </div>
+            <div class="field-group">
+              <label>Prompt template</label>
+              <textarea v-model="form.autonomousPrompt" rows="2" placeholder="New deal {{record.name}} at {{record.stage}}. Score and suggest next steps."></textarea>
+            </div>
+          </template>
           <div class="field-group" v-if="form.role === 'Custom'">
             <label>Custom Capabilities (comma separated)</label>
             <input v-model="form.customCapabilities" placeholder="e.g., answer questions, analyze data, send emails" />
@@ -108,9 +164,17 @@ export default {
   data() {
     return {
       agents: [],
+      hannahGoal: '',
+      hannahLoading: false,
+      hannahResult: '',
+      hannahRuns: [],
       showModal: false,
       editing: false,
-      form: { id: null, name: '', description: '', role: '', customCapabilities: '', icon: '🤖' },
+      form: {
+        id: null, name: '', description: '', role: '', customCapabilities: '', icon: '🤖',
+        autonomousEnabled: false, autonomousObject: 'deals',
+        autonomousEvents: ['created'], autonomousPrompt: ''
+      },
       showChatModal: false,
       currentAgent: null,
       chatHistory: [],
@@ -124,7 +188,7 @@ export default {
     }
   },
   async mounted() {
-    await this.fetchAgents()
+    await Promise.all([this.fetchAgents(), this.loadHannahRuns()])
   },
   methods: {
     async fetchAgents() {
@@ -160,12 +224,23 @@ export default {
     },
     openCreateModal() {
       this.editing = false
-      this.form = { id: null, name: '', description: '', role: '', customCapabilities: '', icon: '🤖' }
+      this.form = {
+        id: null, name: '', description: '', role: '', customCapabilities: '', icon: '🤖',
+        autonomousEnabled: false, autonomousObject: 'deals',
+        autonomousEvents: ['created'], autonomousPrompt: ''
+      }
       this.showModal = true
     },
     editAgent(agent) {
       this.editing = true
-      this.form = { ...agent }
+      const auto = agent.config?.autonomous || {}
+      this.form = {
+        ...agent,
+        autonomousEnabled: !!auto.enabled,
+        autonomousObject: auto.object || 'deals',
+        autonomousEvents: auto.events || ['created'],
+        autonomousPrompt: auto.prompt || ''
+      }
       this.showModal = true
     },
     async saveAgent() {
@@ -179,8 +254,16 @@ export default {
           description: this.form.description || `A ${this.form.role || 'custom'} agent`,
           role: this.form.role || 'Custom',
           capabilities: capabilities,
-          status: 'inactive',
-          icon: this.getIconForRole(this.form.role)
+          status: 'active',
+          icon: this.getIconForRole(this.form.role),
+          config: {
+            autonomous: {
+              enabled: this.form.autonomousEnabled,
+              object: this.form.autonomousObject,
+              events: this.form.autonomousEvents.length ? this.form.autonomousEvents : ['created'],
+              prompt: this.form.autonomousPrompt || undefined
+            }
+          }
         }
         if (this.editing) {
           await api.put(`/agents/${this.form.id}`, agentData)
@@ -213,14 +296,11 @@ export default {
       this.chatLoading = true
       this.scrollToBottom()
       try {
-        // Send with context
-        const contextPrompt = this.getContextPrompt(this.currentAgent)
-        const fullMessage = `${contextPrompt}\n\nUser: ${message}\n\nRespond as ${this.currentAgent.name}. Be helpful and stay within your role.`
-        const res = await api.post(`/agents/${this.currentAgent.id}/run`, { message: fullMessage })
+        const res = await api.post(`/agents/${this.currentAgent.id}/run`, { message })
         const aiResponse = res.data.result?.response || 'No response'
         this.chatHistory.push({ role: 'assistant', content: aiResponse })
       } catch(e) {
-        this.chatHistory.push({ role: 'assistant', content: 'Error: ' + e.message })
+        this.chatHistory.push({ role: 'assistant', content: 'Error: ' + (e.response?.data?.error || e.message) })
       } finally {
         this.chatLoading = false
         this.scrollToBottom()
@@ -229,6 +309,40 @@ export default {
     scrollToBottom() {
       const container = this.$refs.chatContainer
       if (container) container.scrollTop = container.scrollHeight
+    },
+    async runHannah() {
+      if (!this.hannahGoal.trim()) return
+      this.hannahLoading = true
+      this.hannahResult = ''
+      try {
+        const res = await api.post('/hannah/orchestrate', { goal: this.hannahGoal.trim() })
+        this.hannahResult = res.data.result || 'Orchestration completed.'
+        await this.loadHannahRuns()
+      } catch (e) {
+        this.hannahResult = 'Error: ' + (e.response?.data?.error || e.message)
+      } finally {
+        this.hannahLoading = false
+      }
+    },
+    async loadHannahRuns() {
+      try {
+        const res = await api.get('/hannah/runs', { params: { limit: 10 } })
+        this.hannahRuns = res.data || []
+      } catch (e) { /* optional */ }
+    },
+    expandRun(run) {
+      if (run.result) {
+        this.hannahResult = run.result
+        this.hannahGoal = run.goal || ''
+      }
+    },
+    relTime(t) {
+      if (!t) return ''
+      const d = new Date(t), now = new Date(), s = Math.floor((now - d) / 1000)
+      if (s < 60) return 'just now'
+      if (s < 3600) return `${Math.floor(s / 60)}m ago`
+      if (s < 86400) return `${Math.floor(s / 3600)}h ago`
+      return d.toLocaleDateString()
     }
   }
 }
@@ -244,6 +358,28 @@ export default {
 .stat-icon { width: 48px; height: 48px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
 .stat-icon.purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
 .stat-icon.green { background: linear-gradient(135deg, #10b981, #059669); }
+.stat-icon.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.hannah-panel { background: white; border-radius: 24px; padding: 1.25rem 1.5rem; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e0e7ff; }
+.hannah-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.hannah-head h2 { font-size: 1.1rem; color: #1e293b; }
+.hannah-head p { font-size: 0.8rem; color: #64748b; margin-top: 0.2rem; }
+.btn-ghost { background: #f1f5f9; border: none; padding: 0.45rem 0.9rem; border-radius: 10px; cursor: pointer; font-size: 0.8rem; }
+.hannah-input { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
+.hannah-input textarea { flex: 1; min-width: 240px; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 14px; font-size: 0.9rem; resize: vertical; }
+.hannah-result { margin-top: 1rem; padding: 0.75rem 1rem; background: #f0f9ff; border-radius: 12px; border-left: 3px solid #3b82f6; }
+.result-label { font-size: 0.7rem; text-transform: uppercase; color: #64748b; font-weight: 600; margin-bottom: 0.3rem; }
+.hannah-result p { font-size: 0.85rem; color: #1e293b; white-space: pre-wrap; }
+.hannah-runs { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.run-row { display: grid; grid-template-columns: 80px 1fr 80px; gap: 0.5rem; align-items: center; padding: 0.5rem 0.6rem; border-radius: 10px; cursor: pointer; background: #f8fafc; font-size: 0.78rem; }
+.run-row:hover { background: #f1f5f9; }
+.run-status { font-weight: 600; text-transform: uppercase; font-size: 0.65rem; }
+.run-status.success { color: #059669; }
+.run-status.failed { color: #dc2626; }
+.run-status.running { color: #2563eb; }
+.run-goal { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #334155; }
+.run-time { text-align: right; color: #94a3b8; font-size: 0.7rem; }
+.checkbox-label { display: flex; align-items: center; gap: 0.5rem; font-weight: 500; }
+.event-checks { display: flex; gap: 1rem; font-size: 0.85rem; }
 .stat-value { font-size: 1.5rem; font-weight: 700; }
 .agents-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
 .agent-card { background: white; border-radius: 24px; padding: 1.5rem; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }

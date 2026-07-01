@@ -34,6 +34,16 @@
           <span class="stat-desc">Automated business processes</span>
         </div>
       </div>
+      <div class="stat-card" @click="goToRecords">
+        <div class="stat-icon teal">
+          <span>🗂️</span>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ totalObjects }}</span>
+          <span class="stat-label">Data Objects</span>
+          <span class="stat-desc">People, companies, deals & custom</span>
+        </div>
+      </div>
       <div class="stat-card">
         <div class="stat-icon green">
           <span>📊</span>
@@ -72,6 +82,18 @@
             <span class="detail-tag">📊 Data Analyst</span>
             <span class="detail-tag">💻 Developer Helper</span>
             <span class="detail-tag">👥 HR Assistant</span>
+          </div>
+        </div>
+
+        <div class="feature-card" @click="goToRecords">
+          <div class="feature-icon records">🗂️</div>
+          <h3>Flexible Data Model</h3>
+          <p>Model your business with custom objects, strongly-typed fields, and relationships between records — People, Companies, Deals, or anything you need.</p>
+          <div class="feature-details">
+            <span class="detail-tag">🏢 Custom Objects</span>
+            <span class="detail-tag">🔤 Typed Fields</span>
+            <span class="detail-tag">🔗 Relationships</span>
+            <span class="detail-tag">🔍 Filter &amp; Sort</span>
           </div>
         </div>
 
@@ -153,6 +175,46 @@
           </div>
           <div class="action-arrow">→</div>
         </div>
+        <div class="action-card" @click="goToInsights">
+          <div class="action-icon">📊</div>
+          <div class="action-text">
+            <strong>Insights</strong>
+            <span>Pipeline forecast &amp; analytics</span>
+          </div>
+          <div class="action-arrow">→</div>
+        </div>
+        <div class="action-card" @click="goToMonitoring">
+          <div class="action-icon">📡</div>
+          <div class="action-text">
+            <strong>Monitoring</strong>
+            <span>System health &amp; performance</span>
+          </div>
+          <div class="action-arrow">→</div>
+        </div>
+        <div v-if="canManageWorkspace" class="action-card" @click="goToIntegrations">
+          <div class="action-icon">🔌</div>
+          <div class="action-text">
+            <strong>Integrations</strong>
+            <span>Slack, email, CRM connectors</span>
+          </div>
+          <div class="action-arrow">→</div>
+        </div>
+        <div v-if="canViewAudit" class="action-card admin" @click="goToAudit">
+          <div class="action-icon">🔒</div>
+          <div class="action-text">
+            <strong>Audit Log</strong>
+            <span>Security &amp; workspace activity</span>
+          </div>
+          <div class="action-arrow">→</div>
+        </div>
+        <div v-if="isSuperAdmin" class="action-card admin" @click="goToProviders">
+          <div class="action-icon">🔌</div>
+          <div class="action-text">
+            <strong>AI Providers</strong>
+            <span>Configure LLM providers (DeepSeek, OpenAI…)</span>
+          </div>
+          <div class="action-arrow">→</div>
+        </div>
       </div>
     </div>
 
@@ -204,12 +266,19 @@ export default {
     return {
       agents: [],
       flows: [],
-      userName: 'Operator'
+      objects: [],
+      userName: 'Operator',
+      isSuperAdmin: false,
+      canViewAudit: false,
+      canManageWorkspace: false
     }
   },
   computed: {
     activeAgents() {
       return this.agents.filter(a => a.status === 'active').length
+    },
+    totalObjects() {
+      return this.objects.length
     },
     totalFlows() {
       return this.flows.length
@@ -229,22 +298,44 @@ export default {
     const user = localStorage.getItem('user')
     if (user) {
       try {
-        this.userName = JSON.parse(user).name || 'Operator'
+        const parsed = JSON.parse(user)
+        this.userName = parsed.name || 'Operator'
+          this.isSuperAdmin = !!parsed.is_super_admin
+          this.canViewAudit = !!parsed.permissions?.view_audit
+          this.canManageWorkspace = !!parsed.permissions?.manage_workspace
       } catch(e) {}
     }
   },
   methods: {
     async fetchData() {
       try {
-        const [agentsRes, flowsRes] = await Promise.all([
+        const [agentsRes, flowsRes, objectsRes] = await Promise.all([
           api.get('/agents'),
-          api.get('/flows')
+          api.get('/flows'),
+          api.get('/objects')
         ])
         this.agents = agentsRes.data || []
         this.flows = flowsRes.data || []
+        this.objects = objectsRes.data || []
       } catch (err) {
         console.error('Error fetching data:', err)
       }
+      // Refresh identity (covers sessions created before is_super_admin was added
+      // to the login payload).
+      try {
+        const me = await api.get('/me')
+        if (me.data) {
+          this.userName = me.data.name || this.userName
+          this.isSuperAdmin = !!me.data.is_super_admin
+          this.canViewAudit = !!me.data.permissions?.view_audit
+          this.canManageWorkspace = !!me.data.permissions?.manage_workspace
+          localStorage.setItem('user', JSON.stringify({
+            id: me.data.id, name: me.data.name, email: me.data.email,
+            tenant_id: me.data.tenant_id, is_super_admin: !!me.data.is_super_admin,
+            role: me.data.role, permissions: me.data.permissions,
+          }))
+        }
+      } catch (e) { /* not fatal */ }
     },
     goToAtlas() {
       this.$router.push('/atlas')
@@ -254,6 +345,24 @@ export default {
     },
     goToAgents() {
       this.$router.push('/agents')
+    },
+    goToRecords() {
+      this.$router.push('/records')
+    },
+    goToProviders() {
+      this.$router.push('/admin/providers')
+    },
+    goToInsights() {
+      this.$router.push('/insights')
+    },
+    goToAudit() {
+      this.$router.push('/admin/audit')
+    },
+    goToMonitoring() {
+      this.$router.push('/monitoring')
+    },
+    goToIntegrations() {
+      this.$router.push('/integrations')
     }
   }
 }
@@ -372,6 +481,11 @@ export default {
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
+.stat-icon.teal {
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+}
+
 .stat-info {
   flex: 1;
 }
@@ -442,6 +556,7 @@ export default {
 .feature-icon.atlas { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
 .feature-icon.agents { background: linear-gradient(135deg, #3b82f6, #2563eb); }
 .feature-icon.flows { background: linear-gradient(135deg, #10b981, #059669); }
+.feature-icon.records { background: linear-gradient(135deg, #14b8a6, #0d9488); }
 .feature-icon.rag { background: linear-gradient(135deg, #f59e0b, #d97706); }
 .feature-icon.security { background: linear-gradient(135deg, #ef4444, #dc2626); }
 .feature-icon.packs { background: linear-gradient(135deg, #06b6d4, #0891b2); }
@@ -509,6 +624,11 @@ export default {
   transform: translateY(-3px);
   background: linear-gradient(135deg, white, #f0f4ff);
   box-shadow: 0 8px 20px rgba(59, 130, 246, 0.15);
+}
+
+.action-card.admin {
+  border: 1px solid #c7d2fe;
+  background: linear-gradient(135deg, #ffffff, #eef2ff);
 }
 
 .action-icon {

@@ -3,14 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\FeaturePack;
-use Illuminate\Http\Request;
 
 class FeaturePackController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $packs = FeaturePack::where('tenant_id', $request->header('X-Tenant-ID'))->get();
-        return response()->json($packs);
+        // Tenant isolation enforced by the FeaturePack global scope.
+        return response()->json(FeaturePack::all());
     }
 
     public function show(FeaturePack $featurePack)

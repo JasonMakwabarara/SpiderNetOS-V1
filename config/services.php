@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    'cockpit' => [
+        'url' => env('COCKPIT_URL', 'http://localhost:5173'),
+    ],
+
+    'hubspot' => [
+        'client_id' => env('HUBSPOT_CLIENT_ID'),
+        'client_secret' => env('HUBSPOT_CLIENT_SECRET'),
+        'redirect_uri' => env('HUBSPOT_REDIRECT_URI'),
+        'scopes' => [
+            'crm.objects.contacts.read',
+            'oauth',
+        ],
+    ],
+
 ];
